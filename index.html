@@ -987,9 +987,12 @@ function doLogout() {
 }
 
 function renderAuthUI() {
-  const html = AUTH.user
-    ? '<i class="fa-solid fa-user mr-1 text-brand-700"></i>' + esc(AUTH.user.full_name) + ' <span class="text-slate-400">(' + esc(AUTH.user.role_name || '') + ')</span> <button onclick="doLogout()" class="ml-1 text-brand-700 hover:underline">Đăng xuất</button>'
-    : '<button onclick="showLogin()" class="text-brand-700 hover:underline"><i class="fa-solid fa-right-to-bracket mr-1"></i>Đăng nhập</button>';
+  let html = '';
+  if (AUTH.user) {
+    html = '<i class="fa-solid fa-user mr-1 text-brand-700"></i>' + esc(AUTH.user.full_name) + ' <span class="text-slate-400">(' + esc(AUTH.user.role_name || '') + ')</span> <button onclick="doLogout()" class="ml-1 text-brand-700 hover:underline">Đăng xuất</button>';
+  } else if (AUTH.apiMode) {
+    html = '<button onclick="showLogin()" class="text-brand-700 hover:underline"><i class="fa-solid fa-right-to-bracket mr-1"></i>Đăng nhập</button>';
+  }
   document.getElementById('authUser').innerHTML = html;
   document.getElementById('authUserMobile').innerHTML = html;
 }
