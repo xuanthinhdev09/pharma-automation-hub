@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+
+# Database (sinh tự động)
+pharma.db
+*.db
+
+# Env / secrets
+.env
+
+# OS
+Thumbs.db
+.DS_Store
+
+# PRD đầu vào (chứa thông tin ứng tuyển — không public)
+ke-hoach-*.md

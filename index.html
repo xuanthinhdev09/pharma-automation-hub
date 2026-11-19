@@ -1,0 +1,1219 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pharma Automation Hub — Demo Tự động hóa Ngành Dược</title>
+
+<!-- Font -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+<!-- FontAwesome -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+<!-- Tailwind CSS CDN -->
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          brand: {50:'#fdf3f4',100:'#fbe7ea',200:'#f5c4cd',300:'#ec9aa8',400:'#d75e70',500:'#b03048',600:'#800020',700:'#6d001b',800:'#5a0016',900:'#480011'},
+          gold: {50:'#fdf9eb',100:'#f9efc8',200:'#f2dd8c',300:'#e7c94f',400:'#dcb92f',500:'#D4AF37',600:'#b8912a',700:'#947322',800:'#6f5518',900:'#5a4514'}
+        },
+        fontFamily: { sans:['Be Vietnam Pro','Inter','system-ui','sans-serif'] }
+      }
+    }
+  }
+</script>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+<!-- SheetJS -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+<style>
+  html { scroll-behavior: smooth; }
+  body { font-family: 'Be Vietnam Pro', sans-serif; }
+  .page { display: none; }
+  .page.active { display: block; animation: fadeIn .25s ease; }
+  @keyframes fadeIn { from { opacity:0; transform: translateY(6px);} to { opacity:1; transform:none;} }
+  .nav-item { transition: all .15s ease; }
+  .nav-item.active { background: linear-gradient(90deg,#800020,#6d001b); color:#fff; border-left:4px solid #D4AF37; }
+  .scroll-thin::-webkit-scrollbar { width:6px; height:6px; }
+  .scroll-thin::-webkit-scrollbar-thumb { background:#d1d5db; border-radius:3px; }
+  .kanban-col { min-height: 220px; }
+  .chip { cursor:pointer; }
+  #chatPanel { transition: all .25s ease; }
+  .msg-bot { background:#fff; border:1px solid #f3f4f6; }
+  .msg-user { background:#800020; color:#fff; }
+</style>
+</head>
+
+<body class="bg-[#F9FAFB] text-slate-800 antialiased">
+
+<!-- ============ SIDEBAR (desktop) ============ -->
+<aside id="sidebar" class="hidden lg:flex fixed inset-y-0 left-0 w-64 bg-white border-r border-slate-200 flex-col z-40">
+  <div class="h-16 flex items-center gap-3 px-5 border-b border-slate-100">
+    <div class="w-9 h-9 rounded-lg bg-brand-700 text-gold-400 flex items-center justify-center"><i class="fa-solid fa-capsules"></i></div>
+    <div class="leading-tight">
+      <div class="font-bold text-brand-800">Pharma<span class="text-gold-600">Hub</span></div>
+      <div class="text-[11px] text-slate-400">Automation Demo</div>
+    </div>
+  </div>
+  <nav class="flex-1 py-4 px-3 space-y-1" id="navDesktop"></nav>
+  <div class="px-4 pt-3 text-sm" id="authUser"></div>
+  <div class="p-4 text-[11px] text-slate-400 border-t border-slate-100">Website demo — Dữ liệu giả lập</div>
+</aside>
+
+<!-- ============ MOBILE OVERLAY + DRAWER ============ -->
+<div id="overlay" class="fixed inset-0 bg-black/40 z-40 hidden lg:hidden"></div>
+<aside id="drawer" class="fixed inset-y-0 left-0 w-72 bg-white z-50 transform -translate-x-full transition-transform lg:hidden flex flex-col">
+  <div class="h-16 flex items-center justify-between px-5 border-b border-slate-100">
+    <div class="flex items-center gap-3">
+      <div class="w-9 h-9 rounded-lg bg-brand-700 text-gold-400 flex items-center justify-center"><i class="fa-solid fa-capsules"></i></div>
+      <span class="font-bold text-brand-800">Pharma<span class="text-gold-600">Hub</span></span>
+    </div>
+    <button onclick="toggleDrawer(false)" class="text-slate-400 hover:text-slate-700"><i class="fa-solid fa-xmark text-xl"></i></button>
+  </div>
+  <nav class="flex-1 py-4 px-3 space-y-1" id="navMobile"></nav>
+  <div class="px-4 pt-3 text-sm" id="authUserMobile"></div>
+  <div class="p-4 text-[11px] text-slate-400 border-t border-slate-100">Website demo — Dữ liệu giả lập</div>
+</aside>
+
+<!-- ============ TOP BAR (mobile) ============ -->
+<header class="lg:hidden sticky top-0 z-30 h-14 bg-white border-b border-slate-200 flex items-center gap-3 px-4">
+  <button onclick="toggleDrawer(true)" class="text-brand-700"><i class="fa-solid fa-bars text-xl"></i></button>
+  <div class="w-8 h-8 rounded-lg bg-brand-700 text-gold-400 flex items-center justify-center"><i class="fa-solid fa-capsules"></i></div>
+  <span class="font-bold text-brand-800">Pharma Automation Hub</span>
+</header>
+
+<!-- ============ MAIN ============ -->
+<main class="lg:ml-64 min-h-screen flex flex-col">
+
+  <!-- ================= PAGE: HOME ================= -->
+  <section id="page-home" class="page active">
+    <div class="bg-gradient-to-br from-brand-800 via-brand-700 to-brand-900 text-white">
+      <div class="max-w-6xl mx-auto px-6 py-14 lg:py-20">
+        <div class="inline-flex items-center gap-2 bg-white/10 border border-white/20 rounded-full px-4 py-1.5 text-xs font-medium text-gold-300 mb-5">
+          <i class="fa-solid fa-flask"></i> Demo Tự động hóa Ngành Dược &amp; Thiết bị Y tế
+        </div>
+        <h1 class="text-3xl lg:text-5xl font-extrabold leading-tight">Pharma Automation Hub</h1>
+        <p class="mt-4 text-white/80 max-w-2xl text-base lg:text-lg">Nền tảng demo minh họa năng lực số hóa quy trình, tự động xử lý dữ liệu và ứng dụng AI vào công việc trong ngành dược — toàn bộ dữ liệu là giả lập.</p>
+        <div class="mt-7 flex flex-wrap gap-3">
+          <button onclick="document.getElementById('jdSection').scrollIntoView({behavior:'smooth'})" class="bg-gold-500 hover:bg-gold-400 text-brand-900 font-semibold px-5 py-3 rounded-lg transition"><i class="fa-solid fa-map mr-2"></i>Xem bản đồ năng lực</button>
+          <button onclick="showPage('data')" class="bg-white/10 hover:bg-white/20 border border-white/20 font-semibold px-5 py-3 rounded-lg transition"><i class="fa-solid fa-file-excel mr-2"></i>Thử xử lý dữ liệu</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Metric cards -->
+    <div class="max-w-6xl mx-auto px-6 -mt-8 grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div class="bg-white rounded-xl shadow-sm border border-slate-100 p-5">
+        <div class="flex items-center justify-between">
+          <span class="text-slate-400 text-sm">Phiếu đã duyệt / tháng</span>
+          <span class="w-9 h-9 rounded-lg bg-brand-50 text-brand-700 flex items-center justify-center"><i class="fa-solid fa-clipboard-check"></i></span>
+        </div>
+        <div class="mt-2 text-3xl font-extrabold text-brand-800">128</div>
+        <div class="text-xs text-emerald-600 mt-1"><i class="fa-solid fa-arrow-up"></i> 12% so với tháng trước</div>
+      </div>
+      <div class="bg-white rounded-xl shadow-sm border border-slate-100 p-5">
+        <div class="flex items-center justify-between">
+          <span class="text-slate-400 text-sm">Dữ liệu làm sạch tự động</span>
+          <span class="w-9 h-9 rounded-lg bg-gold-50 text-gold-600 flex items-center justify-center"><i class="fa-solid fa-wand-magic-sparkles"></i></span>
+        </div>
+        <div class="mt-2 text-3xl font-extrabold text-brand-800">99.4%</div>
+        <div class="text-xs text-emerald-600 mt-1">Chuẩn hóa thành công</div>
+      </div>
+      <div class="bg-white rounded-xl shadow-sm border border-slate-100 p-5">
+        <div class="flex items-center justify-between">
+          <span class="text-slate-400 text-sm">Ticket đúng SLA</span>
+          <span class="w-9 h-9 rounded-lg bg-brand-50 text-brand-700 flex items-center justify-center"><i class="fa-solid fa-headset"></i></span>
+        </div>
+        <div class="mt-2 text-3xl font-extrabold text-brand-800">45<span class="text-lg text-slate-400">/46</span></div>
+        <div class="text-xs text-slate-400 mt-1">Tỷ lệ đạt 97.8%</div>
+      </div>
+      <div class="bg-white rounded-xl shadow-sm border border-slate-100 p-5">
+        <div class="flex items-center justify-between">
+          <span class="text-slate-400 text-sm">Lượt tương tác AI</span>
+          <span class="w-9 h-9 rounded-lg bg-gold-50 text-gold-600 flex items-center justify-center"><i class="fa-solid fa-robot"></i></span>
+        </div>
+        <div class="mt-2 text-3xl font-extrabold text-brand-800">312</div>
+        <div class="text-xs text-slate-400 mt-1">Trong 30 ngày gần nhất</div>
+      </div>
+    </div>
+
+    <!-- Bản đồ Năng lực → Demo -->
+    <div class="max-w-6xl mx-auto px-6 py-10" id="jdSection">
+      <h2 class="text-xl font-bold text-slate-800 mb-2">Bản đồ Năng lực → Demo</h2>
+      <p class="text-slate-500 mb-5">Đối chiếu từng nhóm yêu cầu công việc với module demo tương ứng. Bấm "Dùng thử" để mở module.</p>
+      <div class="overflow-x-auto bg-white rounded-xl shadow-sm border border-slate-100">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="bg-brand-800 text-white text-left">
+              <th class="px-5 py-3 font-semibold">Yêu cầu công việc</th>
+              <th class="px-5 py-3 font-semibold">Module demo</th>
+              <th class="px-5 py-3 font-semibold hidden md:table-cell">Chức năng cốt lõi</th>
+              <th class="px-5 py-3 font-semibold text-right">Thao tác</th>
+            </tr>
+          </thead>
+          <tbody id="jdTable"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= PAGE: MODULE 1 WORKFLOW ================= -->
+  <section id="page-workflow" class="page">
+    <div class="max-w-6xl mx-auto px-6 py-10">
+      <h1 class="text-2xl lg:text-3xl font-extrabold text-brand-800">Module 1 · Workflow Designer</h1>
+      <p class="text-slate-500 mt-2">Số hóa luồng duyệt phiếu. Chọn quy trình, tạo phiếu và theo dõi trên bảng Kanban.</p>
+
+      <!-- Flow diagram -->
+      <div class="mt-6 bg-white rounded-xl shadow-sm border border-slate-100 p-6">
+        <h2 class="font-semibold text-slate-700 mb-4"><i class="fa-solid fa-diagram-project text-brand-700 mr-2"></i>Luồng duyệt mẫu 4 bước</h2>
+        <div class="flex flex-col md:flex-row items-stretch gap-2">
+          <div class="flex-1 bg-brand-50 border border-brand-100 rounded-lg p-3 text-center"><div class="font-semibold text-brand-800">1. Nhân viên</div><div class="text-xs text-slate-500">Nộp phiếu</div></div>
+          <div class="self-center text-gold-500 hidden md:block"><i class="fa-solid fa-arrow-right"></i></div>
+          <div class="flex-1 bg-gold-50 border border-gold-100 rounded-lg p-3 text-center"><div class="font-semibold text-brand-800">2. Trưởng phòng</div><div class="text-xs text-slate-500">Duyệt nội dung</div></div>
+          <div class="self-center text-gold-500 hidden md:block"><i class="fa-solid fa-arrow-right"></i></div>
+          <div class="flex-1 bg-gold-50 border border-gold-100 rounded-lg p-3 text-center"><div class="font-semibold text-brand-800">3. Kế toán</div><div class="text-xs text-slate-500">Kiểm tra ngân sách</div></div>
+          <div class="self-center text-gold-500 hidden md:block"><i class="fa-solid fa-arrow-right"></i></div>
+          <div class="flex-1 bg-brand-700 text-white rounded-lg p-3 text-center"><div class="font-semibold">4. Giám đốc</div><div class="text-xs text-white/70">Phê duyệt cuối</div></div>
+        </div>
+      </div>
+
+      <div class="grid lg:grid-cols-3 gap-5 mt-6">
+        <!-- Form -->
+        <div class="bg-white rounded-xl shadow-sm border border-slate-100 p-5 lg:col-span-1">
+          <h2 class="font-semibold text-slate-700 mb-4"><i class="fa-solid fa-file-pen text-brand-700 mr-2"></i>Nộp phiếu đề xuất</h2>
+          <label class="text-sm text-slate-500">Chọn quy trình</label>
+          <select id="wfProcess" class="w-full mt-1 mb-4 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-500 outline-none" onchange="renderWfForm()"></select>
+          <div id="wfFormFields" class="space-y-3"></div>
+          <button onclick="submitWf()" class="mt-4 w-full bg-brand-700 hover:bg-brand-800 text-white font-semibold py-2.5 rounded-lg transition"><i class="fa-solid fa-paper-plane mr-2"></i>Gửi duyệt</button>
+        </div>
+
+        <!-- Kanban -->
+        <div class="lg:col-span-2">
+          <div class="flex items-center justify-between mb-3">
+            <h2 class="font-semibold text-slate-700"><i class="fa-solid fa-table-columns text-brand-700 mr-2"></i>Bảng theo dõi (Kanban)</h2>
+            <span class="text-xs text-slate-400" id="wfSla">SLA trung bình: --</span>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="kanban-col bg-slate-50 rounded-xl p-3 border border-slate-100">
+              <div class="flex items-center gap-2 mb-3 text-sm font-semibold text-slate-600"><span class="w-2.5 h-2.5 rounded-full bg-amber-400"></span>Chờ duyệt</div>
+              <div id="kanban-pending" class="space-y-3"></div>
+            </div>
+            <div class="kanban-col bg-slate-50 rounded-xl p-3 border border-slate-100">
+              <div class="flex items-center gap-2 mb-3 text-sm font-semibold text-slate-600"><span class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>Đã duyệt</div>
+              <div id="kanban-approved" class="space-y-3"></div>
+            </div>
+            <div class="kanban-col bg-slate-50 rounded-xl p-3 border border-slate-100">
+              <div class="flex items-center gap-2 mb-3 text-sm font-semibold text-slate-600"><span class="w-2.5 h-2.5 rounded-full bg-red-400"></span>Từ chối</div>
+              <div id="kanban-rejected" class="space-y-3"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= PAGE: MODULE 2 DATA ================= -->
+  <section id="page-data" class="page">
+    <div class="max-w-6xl mx-auto px-6 py-10">
+      <h1 class="text-2xl lg:text-3xl font-extrabold text-brand-800">Module 2 · Data &amp; Report Automation</h1>
+      <p class="text-slate-500 mt-2">Tải lên Excel/CSV, tự động làm sạch, đối chiếu Kho vs Kế toán, xem biểu đồ và xuất báo cáo.</p>
+
+      <div class="flex flex-wrap gap-3 mt-6">
+        <label class="cursor-pointer bg-brand-700 hover:bg-brand-800 text-white font-semibold px-4 py-2.5 rounded-lg transition"><i class="fa-solid fa-upload mr-2"></i>Tải file Excel/CSV<input type="file" id="dataFile" accept=".xlsx,.xls,.csv" class="hidden" onchange="handleDataFile(event)"></label>
+        <button onclick="loadSampleData()" class="bg-gold-500 hover:bg-gold-400 text-brand-900 font-semibold px-4 py-2.5 rounded-lg transition"><i class="fa-solid fa-database mr-2"></i>Nạp dữ liệu mẫu</button>
+        <button onclick="cleanData()" class="bg-white border border-slate-200 hover:border-brand-300 font-semibold px-4 py-2.5 rounded-lg transition"><i class="fa-solid fa-broom mr-2"></i>Làm sạch dữ liệu</button>
+        <button onclick="reconcile()" class="bg-white border border-slate-200 hover:border-brand-300 font-semibold px-4 py-2.5 rounded-lg transition"><i class="fa-solid fa-code-compare mr-2"></i>Đối chiếu Kho vs Kế toán</button>
+        <button onclick="exportXlsx()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-4 py-2.5 rounded-lg transition"><i class="fa-solid fa-file-excel mr-2"></i>Xuất báo cáo .xlsx</button>
+      </div>
+
+      <div class="grid lg:grid-cols-3 gap-5 mt-6">
+        <div class="lg:col-span-2 bg-white rounded-xl shadow-sm border border-slate-100 p-5 overflow-auto">
+          <h2 class="font-semibold text-slate-700 mb-3">Dữ liệu</h2>
+          <div class="overflow-x-auto scroll-thin" id="dataTableWrap"><p class="text-sm text-slate-400">Chưa có dữ liệu. Bấm "Nạp dữ liệu mẫu" hoặc tải file lên.</p></div>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm border border-slate-100 p-5">
+          <h2 class="font-semibold text-slate-700 mb-3"><i class="fa-solid fa-list-check text-brand-700 mr-2"></i>Nhật ký xử lý</h2>
+          <ol id="dataLog" class="space-y-2 text-sm text-slate-600"></ol>
+        </div>
+      </div>
+
+      <!-- Charts -->
+      <div class="grid lg:grid-cols-3 gap-5 mt-6">
+        <div class="bg-white rounded-xl shadow-sm border border-slate-100 p-5"><h3 class="font-semibold text-slate-700 mb-3">Doanh thu theo tháng</h3><canvas id="chartRevenue" height="200"></canvas></div>
+        <div class="bg-white rounded-xl shadow-sm border border-slate-100 p-5"><h3 class="font-semibold text-slate-700 mb-3">Tỷ trọng nhóm sản phẩm</h3><canvas id="chartGroup" height="200"></canvas></div>
+        <div class="bg-white rounded-xl shadow-sm border border-slate-100 p-5"><h3 class="font-semibold text-slate-700 mb-3">Tồn kho thấp</h3><canvas id="chartStock" height="200"></canvas></div>
+      </div>
+
+      <div class="bg-white rounded-xl shadow-sm border border-slate-100 p-5 mt-6">
+        <h3 class="font-semibold text-slate-700 mb-3"><i class="fa-solid fa-triangle-exclamation text-amber-500 mr-2"></i>Cảnh báo hạn dùng</h3>
+        <div class="overflow-x-auto" id="expiryTable"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= PAGE: MODULE 3 AI ================= -->
+  <section id="page-ai" class="page">
+    <div class="max-w-6xl mx-auto px-6 py-10">
+      <h1 class="text-2xl lg:text-3xl font-extrabold text-brand-800">Module 3 · AI Assistant Workspace</h1>
+      <p class="text-slate-500 mt-2">4 tình huống ứng dụng AI kèm khung kiểm tra kết quả và quy tắc an toàn. Chatbot trợ lý ở góc phải màn hình.</p>
+
+      <!-- Safety rules -->
+      <div class="grid md:grid-cols-4 gap-4 mt-6" id="aiRules"></div>
+
+      <!-- 4 AI cases -->
+      <div class="grid lg:grid-cols-2 gap-5 mt-6" id="aiCases"></div>
+    </div>
+  </section>
+
+  <!-- ================= PAGE: MODULE 4 HELPDESK ================= -->
+  <section id="page-helpdesk" class="page">
+    <div class="max-w-6xl mx-auto px-6 py-10">
+      <h1 class="text-2xl lg:text-3xl font-extrabold text-brand-800">Module 4 · IT Helpdesk &amp; Knowledge Base</h1>
+      <p class="text-slate-500 mt-2">Tạo yêu cầu hỗ trợ, tra cứu hướng dẫn và quản lý tài sản IT.</p>
+
+      <div class="grid lg:grid-cols-3 gap-5 mt-6">
+        <!-- Ticket form -->
+        <div class="bg-white rounded-xl shadow-sm border border-slate-100 p-5">
+          <h2 class="font-semibold text-slate-700 mb-4"><i class="fa-solid fa-ticket text-brand-700 mr-2"></i>Tạo yêu cầu hỗ trợ</h2>
+          <label class="text-sm text-slate-500">Loại sự cố</label>
+          <select id="ticketType" class="w-full mt-1 mb-3 border border-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-500">
+            <option>Máy in</option><option>Quên mật khẩu</option><option>Phần mềm</option><option>Wifi / Mạng</option><option>Khác</option>
+          </select>
+          <label class="text-sm text-slate-500">Mức ưu tiên</label>
+          <select id="ticketPriority" class="w-full mt-1 mb-3 border border-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-500">
+            <option>Khẩn</option><option>Cao</option><option>Trung bình</option><option>Thấp</option>
+          </select>
+          <label class="text-sm text-slate-500">Mô tả sự cố</label>
+          <textarea id="ticketDesc" rows="3" class="w-full mt-1 mb-3 border border-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-500" placeholder="Mô tả ngắn gọn..."></textarea>
+          <button onclick="submitTicket()" class="w-full bg-brand-700 hover:bg-brand-800 text-white font-semibold py-2.5 rounded-lg transition"><i class="fa-solid fa-paper-plane mr-2"></i>Gửi yêu cầu</button>
+        </div>
+
+        <!-- Ticket list -->
+        <div class="lg:col-span-2 bg-white rounded-xl shadow-sm border border-slate-100 p-5">
+          <h2 class="font-semibold text-slate-700 mb-3"><i class="fa-solid fa-list text-brand-700 mr-2"></i>Yêu cầu của tôi</h2>
+          <div class="space-y-3" id="ticketList"></div>
+        </div>
+      </div>
+
+      <!-- KB + Assets -->
+      <div class="grid lg:grid-cols-3 gap-5 mt-6">
+        <div class="bg-white rounded-xl shadow-sm border border-slate-100 p-5">
+          <h2 class="font-semibold text-slate-700 mb-3"><i class="fa-solid fa-book text-brand-700 mr-2"></i>Kho hướng dẫn</h2>
+          <input type="text" id="kbSearch" placeholder="Tìm bài hướng dẫn..." oninput="renderKB()" class="w-full mb-3 border border-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-500">
+          <div id="kbList" class="space-y-2"></div>
+        </div>
+        <div class="lg:col-span-2 bg-white rounded-xl shadow-sm border border-slate-100 p-5">
+          <h2 class="font-semibold text-slate-700 mb-3"><i class="fa-solid fa-computer text-brand-700 mr-2"></i>Quản lý tài sản IT &amp; thống kê sự cố</h2>
+          <div class="overflow-x-auto"><table class="w-full text-sm" id="assetTable"></table></div>
+          <div class="mt-4"><canvas id="chartDept" height="120"></canvas></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="mt-auto border-t border-slate-200 bg-white">
+    <div class="max-w-6xl mx-auto px-6 py-6 flex flex-col md:flex-row items-center justify-between gap-3 text-sm text-slate-500">
+      <div class="flex items-center gap-2"><i class="fa-solid fa-shield-halved text-gold-500"></i><span>Website demo — Dữ liệu giả lập. Không chứa thông tin thực tế của bất kỳ doanh nghiệp nào.</span></div>
+      <div>Pharma Automation Hub © 2026</div>
+    </div>
+  </footer>
+</main>
+
+<!-- ============ CHATBOT WIDGET ============ -->
+<div class="fixed bottom-5 right-5 z-50">
+  <div id="chatPanel" class="hidden mb-3 w-[320px] max-w-[calc(100vw-2.5rem)] bg-white rounded-2xl shadow-2xl border border-slate-200 flex flex-col overflow-hidden" style="height:480px;">
+    <div class="bg-brand-800 text-white px-4 py-3 flex items-center gap-3">
+      <div class="w-9 h-9 rounded-full bg-gold-500 text-brand-900 flex items-center justify-center"><i class="fa-solid fa-robot"></i></div>
+      <div>
+        <div class="font-semibold text-sm">Trợ lý ảo</div>
+        <div class="text-[11px] text-white/70">Trả lời dựa trên bộ câu hỏi mẫu</div>
+      </div>
+    </div>
+    <div id="chatMessages" class="flex-1 overflow-y-auto scroll-thin p-3 space-y-2"></div>
+    <div id="chatSuggestions" class="px-3 pb-2 flex flex-wrap gap-1.5"></div>
+    <div class="p-2 border-t border-slate-100 flex gap-2">
+      <input id="chatInput" type="text" placeholder="Nhập câu hỏi..." class="flex-1 border border-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-500" onkeydown="if(event.key==='Enter')sendChat()">
+      <button onclick="sendChat()" class="bg-brand-700 hover:bg-brand-800 text-white w-10 rounded-lg"><i class="fa-solid fa-paper-plane"></i></button>
+    </div>
+  </div>
+  <button onclick="toggleChat()" class="ml-auto flex w-14 h-14 rounded-full bg-brand-700 hover:bg-brand-800 text-white text-2xl shadow-lg items-center justify-center transition"><i class="fa-solid fa-robot"></i></button>
+</div>
+
+<!-- Login overlay -->
+<div id="loginOverlay" class="hidden fixed inset-0 z-[70] bg-brand-900/95 flex items-center justify-center p-4">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-8">
+    <div class="flex items-center gap-3 mb-6">
+      <div class="w-11 h-11 rounded-xl bg-brand-700 text-gold-400 flex items-center justify-center text-xl"><i class="fa-solid fa-capsules"></i></div>
+      <div><div class="font-bold text-brand-800 text-lg">Đăng nhập</div><div class="text-xs text-slate-400">Pharma Automation Hub</div></div>
+    </div>
+    <div id="loginError" class="hidden mb-3 text-sm text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2"></div>
+    <label class="text-sm text-slate-500">Tên đăng nhập</label>
+    <input id="loginUser" class="w-full mt-1 mb-3 border border-slate-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-brand-500" placeholder="admin" autocomplete="username">
+    <label class="text-sm text-slate-500">Mật khẩu</label>
+    <input id="loginPass" type="password" class="w-full mt-1 mb-5 border border-slate-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-brand-500" placeholder="demo123" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
+    <button onclick="doLogin()" class="w-full bg-brand-700 hover:bg-brand-800 text-white font-semibold py-2.5 rounded-lg transition"><i class="fa-solid fa-right-to-bracket mr-2"></i>Đăng nhập</button>
+    <p class="text-center text-xs text-slate-400 mt-4">Tài khoản demo: <b>admin</b> / <b>demo123</b></p>
+  </div>
+</div>
+
+<script src="100.js"></script>
+<script>
+/* ============================================================
+   Pharma Automation Hub — Single-page app logic (mock data)
+   ============================================================ */
+
+/* ---------- Navigation ---------- */
+const NAV = [
+  { id:'home', label:'Tổng quan', icon:'fa-house' },
+  { id:'workflow', label:'Module 1 · Workflow', icon:'fa-diagram-project' },
+  { id:'data', label:'Module 2 · Dữ liệu & Báo cáo', icon:'fa-file-excel' },
+  { id:'ai', label:'Module 3 · AI Workspace', icon:'fa-robot' },
+  { id:'helpdesk', label:'Module 4 · IT Helpdesk', icon:'fa-headset' },
+];
+
+function buildNav() {
+  const html = NAV.map(n =>
+    `<button onclick="showPage('${n.id}')" data-nav="${n.id}" class="nav-item w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm text-slate-600 hover:bg-brand-50 hover:text-brand-800">
+      <i class="fa-solid ${n.icon} w-5 text-center"></i><span>${n.label}</span>
+    </button>`).join('');
+  document.getElementById('navDesktop').innerHTML = html;
+  document.getElementById('navMobile').innerHTML = html;
+}
+
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  document.querySelectorAll('[data-nav]').forEach(b => b.classList.toggle('active', b.dataset.nav === id));
+  toggleDrawer(false);
+  window.scrollTo({ top:0, behavior:'smooth' });
+  if (id === 'data') initCharts();
+  if (id === 'helpdesk') initDeptChart();
+}
+
+function toggleDrawer(open) {
+  document.getElementById('drawer').classList.toggle('-translate-x-full', !open);
+  document.getElementById('overlay').classList.toggle('hidden', !open);
+}
+document.getElementById('overlay').addEventListener('click', () => toggleDrawer(false));
+
+/* ---------- Helpers ---------- */
+function removeDiacritics(s) {
+  return s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/đ/g,'d').replace(/Đ/g,'D');
+}
+function normalizeVi(s) {
+  return removeDiacritics(String(s).toLowerCase()).replace(/[^a-z0-9\s]/g,' ').replace(/\s+/g,' ').trim();
+}
+function daysUntil(dateStr) {
+  const d = new Date(dateStr + 'T00:00:00');
+  return Math.ceil((d - new Date()) / (1000*60*60*24));
+}
+function fmtVND(n) { return (n||0).toLocaleString('vi-VN') + ' đ'; }
+function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function loadLS(key, def) { try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : def; } catch(e){ return def; } }
+function saveLS(key, val) { try { localStorage.setItem(key, JSON.stringify(val)); } catch(e){} }
+
+/* ============================================================
+   JD MAP (hiển thị trong Trang chủ)
+   ============================================================ */
+const JD_ROWS = [
+  { req:'Quản trị Base, thiết kế quy trình làm việc', mod:'Module 1 · Workflow Designer', fn:'Luồng duyệt 4 bước, form nộp đề xuất, Kanban theo dõi tiến độ, thống kê SLA', page:'workflow' },
+  { req:'Tự động hóa xử lý dữ liệu, lập báo cáo', mod:'Module 2 · Data & Report Automation', fn:'Upload Excel/CSV, làm sạch dữ liệu, đối chiếu Kho vs Kế toán, dashboard Chart.js, xuất Excel', page:'data' },
+  { req:'Triển khai ứng dụng AI vào công việc', mod:'Module 3 · AI Assistant Workspace', fn:'4 tình huống demo AI, khung đánh giá kết quả, chatbot 100 intents, quy tắc an toàn AI', page:'ai' },
+  { req:'Hỗ trợ CNTT nội bộ, hướng dẫn người dùng', mod:'Module 4 · IT Helpdesk & KB', fn:'Quản lý ticket, phân loại ưu tiên, kho bài hướng dẫn, quản lý tài sản IT', page:'helpdesk' },
+];
+function renderJd() {
+  document.getElementById('jdTable').innerHTML = JD_ROWS.map(r => `
+    <tr class="border-t border-slate-100 hover:bg-slate-50">
+      <td class="px-5 py-4 text-slate-700 font-medium">${r.req}</td>
+      <td class="px-5 py-4 text-brand-800 font-semibold">${r.mod}</td>
+      <td class="px-5 py-4 text-slate-500 hidden md:table-cell">${r.fn}</td>
+      <td class="px-5 py-4 text-right"><button onclick="showPage('${r.page}')" class="bg-brand-50 text-brand-700 hover:bg-brand-700 hover:text-white font-semibold text-sm px-3 py-1.5 rounded-lg transition">Dùng thử</button></td>
+    </tr>`).join('');
+}
+
+/* ============================================================
+   MODULE 1 — WORKFLOW
+   ============================================================ */
+const PROCESSES = [
+  { id:'purchase', name:'Đề xuất mua hàng vật tư/thiết bị', icon:'fa-cart-shopping',
+    fields:[{k:'item',label:'Tên vật tư / thiết bị',type:'text'},{k:'qty',label:'Số lượng',type:'number'},{k:'reason',label:'Lý do',type:'text'},{k:'date',label:'Ngày cần',type:'date'}] },
+  { id:'leave', name:'Đơn xin nghỉ phép', icon:'fa-calendar-days',
+    fields:[{k:'type',label:'Loại nghỉ',type:'select',opts:['Nghỉ phép năm','Nghỉ việc riêng','Nghỉ ốm']},{k:'from',label:'Ngày bắt đầu',type:'date'},{k:'to',label:'Ngày kết thúc',type:'date'},{k:'handover',label:'Người bàn giao',type:'text'}] },
+  { id:'payment', name:'Đề nghị thanh toán chi phí', icon:'fa-money-bill-wave',
+    fields:[{k:'content',label:'Nội dung chi',type:'text'},{k:'amount',label:'Số tiền (VNĐ)',type:'number'},{k:'payee',label:'Người thụ hưởng',type:'text'},{k:'doc',label:'Chứng từ',type:'text'}] },
+];
+
+let wfRequests = loadLS('pharma_wf', seedWf());
+function seedWf() {
+  return [
+    { id:'WF-001', process:'Đề xuất mua hàng vật tư/thiết bị', title:'Mua máy đo huyết áp', status:'pending', time:'2 giờ trước', sla:'Trong hạn' },
+    { id:'WF-002', process:'Đơn xin nghỉ phép', title:'Nghỉ phép năm 3 ngày', status:'approved', time:'5 giờ trước', sla:'Trong hạn' },
+    { id:'WF-003', process:'Đề nghị thanh toán chi phí', title:'Thanh toán phí vận chuyển', status:'rejected', time:'1 ngày trước', sla:'Quá hạn 4h' },
+  ];
+}
+
+function renderWfProcessSelect() {
+  const sel = document.getElementById('wfProcess');
+  sel.innerHTML = PROCESSES.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+  renderWfForm();
+}
+function renderWfForm() {
+  const p = PROCESSES.find(x => x.id === document.getElementById('wfProcess').value) || PROCESSES[0];
+  document.getElementById('wfFormFields').innerHTML = p.fields.map(f => {
+    if (f.type === 'select') {
+      return `<div><label class="text-sm text-slate-500">${f.label}</label><select data-k="${f.k}" class="wf-field w-full mt-1 border border-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-500">${f.opts.map(o=>`<option>${o}</option>`).join('')}</select></div>`;
+    }
+    return `<div><label class="text-sm text-slate-500">${f.label}</label><input type="${f.type}" data-k="${f.k}" class="wf-field w-full mt-1 border border-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-500"></div>`;
+  }).join('');
+}
+function submitWf() {
+  const p = PROCESSES.find(x => x.id === document.getElementById('wfProcess').value) || PROCESSES[0];
+  const vals = {};
+  document.querySelectorAll('.wf-field').forEach(el => vals[el.dataset.k] = el.value);
+  const firstLabel = p.fields[0].label;
+  const title = (vals[p.fields[0].k] || 'Phiếu mới') + (p.id==='payment' && vals.amount ? ' — ' + fmtVND(Number(vals.amount)) : '');
+  wfRequests.unshift({ id:'WF-' + String(Date.now()).slice(-5), process:p.name, title, status:'pending', time:'Vừa xong', sla:'Trong hạn' });
+  saveLS('pharma_wf', wfRequests);
+  renderKanban();
+  document.querySelectorAll('.wf-field').forEach(el => el.value = '');
+}
+function renderKanban() {
+  const byStatus = s => wfRequests.filter(r => r.status === s).map(r => `
+    <div class="bg-white rounded-lg border border-slate-200 p-3 shadow-sm">
+      <div class="text-xs text-slate-400 font-medium">${r.id} · ${r.process}</div>
+      <div class="mt-1 text-sm font-semibold text-slate-800">${esc(r.title)}</div>
+      <div class="mt-2 flex items-center justify-between">
+        <span class="text-[11px] ${r.sla.includes('Quá') ? 'text-red-600 font-semibold' : 'text-emerald-600'}"><i class="fa-regular fa-clock mr-1"></i>${r.time}</span>
+        ${s === 'pending' ? `<div class="flex gap-1"><button onclick="moveWf('${r.id}','approved')" title="Duyệt" class="w-7 h-7 rounded-md bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white"><i class="fa-solid fa-check text-xs"></i></button><button onclick="moveWf('${r.id}','rejected')" title="Từ chối" class="w-7 h-7 rounded-md bg-red-50 text-red-500 hover:bg-red-500 hover:text-white"><i class="fa-solid fa-xmark text-xs"></i></button></div>` : `<span class="text-[11px] font-semibold ${s==='approved'?'text-emerald-600':'text-red-500'}">${s==='approved'?'Đã duyệt':'Từ chối'}</span>`}
+      </div>
+    </div>`).join('') || '<p class="text-xs text-slate-400">Không có phiếu.</p>';
+  document.getElementById('kanban-pending').innerHTML = byStatus('pending');
+  document.getElementById('kanban-approved').innerHTML = byStatus('approved');
+  document.getElementById('kanban-rejected').innerHTML = byStatus('rejected');
+  const overdue = wfRequests.filter(r => r.sla.includes('Quá')).length;
+  document.getElementById('wfSla').textContent = `SLA trung bình: 1 ngày/bước · ${overdue} phiếu quá hạn`;
+}
+function moveWf(id, status) {
+  const r = wfRequests.find(x => x.id === id);
+  if (r) { r.status = status; r.time = 'Vừa xong'; saveLS('pharma_wf', wfRequests); renderKanban(); }
+}
+
+/* ============================================================
+   MODULE 2 — DATA & REPORT
+   ============================================================ */
+const MEDICINES = [
+  { code:'MED001', brand:'Paracetamol 500mg', generic:'Paracetamol', unit:'Hộp', lot:'LOT202601', expiry:'2026-12-31', stock:1500, min:200, group:'Giảm đau' },
+  { code:'MED002', brand:'Amoxicillin 500mg', generic:'Amoxicillin', unit:'Hộp', lot:'LOT202545', expiry:'2027-03-15', stock:320, min:150, group:'Kháng sinh' },
+  { code:'MED003', brand:'Vitamin C 1000mg', generic:'Acid Ascorbic', unit:'Lọ', lot:'LOT202611', expiry:'2026-11-30', stock:90, min:120, group:'Vitamin' },
+  { code:'MED004', brand:'Insulin Glargine', generic:'Insulin Glargine', unit:'Bút tiêm', lot:'LOT202433', expiry:'2026-12-05', stock:45, min:60, group:'Điều trị' },
+  { code:'MED005', brand:'Ibuprofen 400mg', generic:'Ibuprofen', unit:'Hộp', lot:'LOT202622', expiry:'2027-05-20', stock:780, min:200, group:'Giảm đau' },
+  { code:'MED006', brand:'Omeprazole 20mg', generic:'Omeprazole', unit:'Hộp', lot:'LOT202518', expiry:'2026-12-20', stock:210, min:100, group:'Tiêu hóa' },
+  { code:'MED007', brand:'Cetirizine 10mg', generic:'Cetirizine', unit:'Hộp', lot:'LOT202631', expiry:'2027-08-10', stock:540, min:150, group:'Dị ứng' },
+  { code:'MED008', brand:'Metformin 850mg', generic:'Metformin', unit:'Hộp', lot:'LOT202430', expiry:'2026-12-02', stock:65, min:100, group:'Điều trị' },
+];
+const REVENUE = ['T1','T2','T3','T4','T5','T6','T7','T8','T9','T10','T11','T12'].map((m,i) => ({ m, v: 150 + Math.round(Math.abs(Math.sin(i)*80) + (i%5)*30) }));
+const GROUP_SHARE = [
+  { g:'Giảm đau', v:34 }, { g:'Kháng sinh', v:26 }, { g:'Vitamin', v:15 }, { g:'Điều trị', v:13 }, { g:'Khác', v:12 }
+];
+const KHO_DATA = [
+  { code:'MED001', lot:'LOT202601', qty:1000 }, { code:'MED002', lot:'LOT202545', qty:320 },
+  { code:'MED003', lot:'LOT202611', qty:90 }, { code:'MED005', lot:'LOT202622', qty:780 },
+];
+const KT_DATA = [
+  { code:'MED001', lot:'LOT202601', qty:950 }, { code:'MED002', lot:'LOT202545', qty:320 },
+  { code:'MED003', lot:'LOT202611', qty:90 }, { code:'MED006', lot:'LOT202518', qty:200 },
+];
+
+let currentData = [];
+let dataLog = [];
+let charts = {};
+
+function addLog(msg) { dataLog.unshift(msg); renderLog(); }
+function renderLog() {
+  document.getElementById('dataLog').innerHTML = dataLog.length
+    ? dataLog.map(m => `<li class="flex gap-2"><span class="text-gold-500 mt-0.5"><i class="fa-solid fa-chevron-right text-xs"></i></span><span>${m}</span></li>`).join('')
+    : '<li class="text-slate-400">Chưa có bước xử lý.</li>';
+}
+
+function renderDataTable(rows, options) {
+  const wrap = document.getElementById('dataTableWrap');
+  if (!rows.length) { wrap.innerHTML = '<p class="text-sm text-slate-400">Không có dữ liệu.</p>'; return; }
+  const cols = Object.keys(rows[0]);
+  const badCells = options && options.badCells ? options.badCells : {};
+  let html = `<table class="w-full text-sm border-collapse min-w-[640px]"><thead><tr class="bg-brand-50 text-brand-800">`;
+  cols.forEach(c => html += `<th class="px-3 py-2 text-left font-semibold whitespace-nowrap">${esc(c)}</th>`);
+  html += '</tr></thead><tbody>';
+  rows.forEach((r, ri) => {
+    const key = ri + '|' + JSON.stringify(r);
+    const isDiff = options && options.diffRows && options.diffRows.has(ri);
+    const isOnly = options && options.onlyRows && options.onlyRows.has(ri);
+    html += `<tr class="border-t border-slate-100 ${isDiff ? 'bg-red-50' : ''} ${isOnly ? 'bg-amber-50' : ''}">`;
+    cols.forEach(c => {
+      let val = r[c];
+      const isBad = badCells[ri] && badCells[ri].has(c);
+      if (isBad) val = `<span class="bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded">${esc(val)}</span>`;
+      else val = esc(val);
+      html += `<td class="px-3 py-2 whitespace-nowrap">${val}</td>`;
+    });
+    html += '</tr>';
+  });
+  html += '</tbody></table>';
+  wrap.innerHTML = html;
+}
+
+function loadSampleData() {
+  // Nạp dữ liệu mẫu kèm 1 dòng trùng + 1 ô trống + tên chưa chuẩn để minh họa việc làm sạch
+  currentData = MEDICINES.map(m => ({...m}));
+  currentData.push({...MEDICINES[0]}); // dòng trùng
+  currentData.push({ code:'MED009', brand:'  aspirin 100mg ', generic:'Aspirin', unit:'Hộp', lot:'LOT202640', expiry:'2027-02-01', stock:'', min:50, group:'Giảm đau' }); // ô trống + tên lỗi
+  dataLog = ['Nạp ' + currentData.length + ' dòng dữ liệu mẫu (gồm dòng trùng, ô trống, tên chưa chuẩn).'];
+  renderLog(); renderDataTable(currentData);
+  initCharts();
+}
+
+function handleDataFile(ev) {
+  const file = ev.target.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const wb = XLSX.read(new Uint8Array(e.target.result), { type:'array' });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      currentData = XLSX.utils.sheet_to_json(ws, { defval:'' });
+      dataLog = ['Đã đọc file "' + file.name + '" (' + currentData.length + ' dòng).'];
+      renderLog(); renderDataTable(currentData);
+    } catch(err) { alert('Không đọc được file: ' + err.message); }
+  };
+  reader.readAsArrayBuffer(file);
+  ev.target.value = '';
+}
+
+function cleanData() {
+  if (!currentData.length) { alert('Chưa có dữ liệu. Hãy nạp dữ liệu mẫu trước.'); return; }
+  const before = currentData.length;
+  // 1. Bỏ dòng trùng (so theo toàn bộ cột)
+  const seen = new Set();
+  let cleaned = currentData.filter(r => { const k = JSON.stringify(r); if (seen.has(k)) return false; seen.add(k); return true; });
+  const dupRemoved = before - cleaned.length;
+  // 2. Chuẩn hóa tên thuốc: cắt khoảng trắng + viết hoa chữ đầu mỗi từ
+  let nameFixed = 0;
+  cleaned = cleaned.map(r => {
+    const o = {...r};
+    if (o.brand && typeof o.brand === 'string') {
+      const fixed = o.brand.trim().replace(/\s+/g,' ').replace(/\b\w/g, c => c.toUpperCase());
+      if (fixed !== o.brand) { o.brand = fixed; nameFixed++; }
+    }
+    return o;
+  });
+  // 3. Đánh dấu ô rỗng / sai định dạng
+  const badCells = {};
+  cleaned.forEach((r, i) => {
+    const set = new Set();
+    Object.keys(r).forEach(c => {
+      const v = r[c];
+      if (v === '' || v == null) set.add(c);
+      else if ((c === 'stock' || c === 'min') && (isNaN(Number(v)) || Number(v) < 0)) set.add(c);
+    });
+    if (set.size) badCells[i] = set;
+  });
+  const emptyCount = Object.keys(badCells).length;
+  currentData = cleaned;
+  dataLog = [
+    'Bỏ ' + dupRemoved + ' dòng trùng lặp.',
+    'Chuẩn hóa ' + nameFixed + ' tên thuốc (viết hoa, cắt khoảng trắng).',
+    'Đánh dấu ' + emptyCount + ' dòng có ô rỗng/sai định dạng (tô vàng).',
+  ];
+  renderLog(); renderDataTable(currentData, { badCells });
+}
+
+function reconcile() {
+  const map = new Map();
+  KHO_DATA.forEach(r => map.set(r.code + '|' + r.lot, { ...r, label:'Kho', kqty:r.qty, ktqty:0 }));
+  KT_DATA.forEach(r => {
+    const k = r.code + '|' + r.lot;
+    if (map.has(k)) { const m = map.get(k); m.ktqty = r.qty; m.label = 'Cả hai'; }
+    else map.set(k, { ...r, label:'Kế toán', kqty:0, ktqty:r.qty });
+  });
+  const rows = [...map.values()].map(r => ({ code:r.code, lot:r.lot, kho:r.kqty, ketoan:r.ktqty, diff:r.kqty - r.ktqty, status: r.label === 'Cả hai' ? (r.kqty === r.ktqty ? 'Khớp' : 'Lệch') : r.label }));
+  const diffRows = new Set(); const onlyRows = new Set();
+  rows.forEach((r, i) => {
+    if (r.status === 'Lệch') diffRows.add(i);
+    else if (r.status === 'Kho' || r.status === 'Kế toán') onlyRows.add(i);
+  });
+  renderDataTable(rows, { diffRows, onlyRows });
+  addLog('Đối chiếu Kho vs Kế toán theo Mã hàng + Số lô: ' + diffRows.size + ' dòng lệch, ' + onlyRows.size + ' dòng chỉ có 1 nguồn.');
+}
+
+function initCharts() {
+  if (typeof Chart === 'undefined') return;
+  const palette = ['#800020','#D4AF37','#b03048','#947322','#6d001b'];
+  const mk = (id, cfg) => { if (charts[id]) charts[id].destroy(); charts[id] = new Chart(document.getElementById(id), cfg); };
+
+  mk('chartRevenue', { type:'bar', data:{ labels:REVENUE.map(x=>x.m), datasets:[{ label:'Doanh thu (triệu)', data:REVENUE.map(x=>x.v), backgroundColor:'#800020', borderRadius:4 }] }, options:{ plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true}} } });
+  mk('chartGroup', { type:'pie', data:{ labels:GROUP_SHARE.map(x=>x.g), datasets:[{ data:GROUP_SHARE.map(x=>x.v), backgroundColor:palette }] }, options:{ plugins:{legend:{position:'bottom'}} } });
+  const low = MEDICINES.filter(m => m.stock < m.min);
+  mk('chartStock', { type:'bar', indexAxis:'y', data:{ labels:low.map(x=>x.brand), datasets:[{ label:'Tồn kho', data:low.map(x=>x.stock), backgroundColor:'#D4AF37' }] }, options:{ plugins:{legend:{display:false}} } });
+
+  renderExpiry();
+}
+
+function renderExpiry() {
+  const rows = MEDICINES.map(m => ({ ...m, days: daysUntil(m.expiry) }))
+    .filter(m => m.days < 180)
+    .sort((a,b) => a.days - b.days);
+  const badge = d => d < 30 ? '<span class="bg-red-100 text-red-700 px-2 py-0.5 rounded-full text-[11px] font-semibold">Dưới 30 ngày</span>'
+    : d < 90 ? '<span class="bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full text-[11px] font-semibold">30-90 ngày</span>'
+    : '<span class="bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full text-[11px] font-semibold">90-180 ngày</span>';
+  document.getElementById('expiryTable').innerHTML = rows.length ? `
+    <table class="w-full text-sm min-w-[560px]"><thead><tr class="bg-brand-50 text-brand-800 text-left">
+      <th class="px-3 py-2">Mã</th><th class="px-3 py-2">Tên</th><th class="px-3 py-2">Số lô</th><th class="px-3 py-2">Hạn dùng</th><th class="px-3 py-2">Còn lại</th><th class="px-3 py-2">Cảnh báo</th>
+    </tr></thead><tbody>
+    ${rows.map(m => `<tr class="border-t border-slate-100"><td class="px-3 py-2 font-medium">${m.code}</td><td class="px-3 py-2">${esc(m.brand)}</td><td class="px-3 py-2">${m.lot}</td><td class="px-3 py-2">${m.expiry}</td><td class="px-3 py-2">${m.days} ngày</td><td class="px-3 py-2">${badge(m.days)}</td></tr>`).join('')}
+    </tbody></table>` : '<p class="text-sm text-slate-400">Không có lô nào dưới 180 ngày.</p>';
+}
+
+function exportXlsx() {
+  if (typeof XLSX === 'undefined') { alert('Thư viện SheetJS chưa nạp.'); return; }
+  if (!currentData.length) { alert('Chưa có dữ liệu để xuất.'); return; }
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(currentData), 'DuLieuSach');
+  // Thêm sheet chênh lệch (đối chiếu)
+  const map = new Map();
+  KHO_DATA.forEach(r => map.set(r.code+'|'+r.lot, { code:r.code, lot:r.lot, kho:r.qty, ketoan:0 }));
+  KT_DATA.forEach(r => { const k=r.code+'|'+r.lot; if(map.has(k)) map.get(k).ketoan = r.qty; else map.set(k,{code:r.code,lot:r.lot,kho:0,ketoan:r.qty}); });
+  const diff = [...map.values()].map(r => ({ ...r, chenhLech:r.kho-r.ketoan }));
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(diff), 'ChenhLech');
+  XLSX.writeFile(wb, 'bao-cao-pharma-hub.xlsx');
+  addLog('Đã xuất file bao-cao-pharma-hub.xlsx (2 sheet: DuLieuSach, ChenhLech).');
+}
+
+/* ============================================================
+   MODULE 3 — AI WORKSPACE
+   ============================================================ */
+const AI_RULES = [
+  { icon:'fa-user-shield', title:'Không nhập dữ liệu nhạy cảm', desc:'Không đưa thông tin cá nhân, số tài khoản hay dữ liệu khách hàng thật vào AI.' },
+  { icon:'fa-magnifying-glass', title:'Luôn đối chiếu nguồn', desc:'So sánh kết quả AI với tài liệu gốc trước khi dùng.' },
+  { icon:'fa-user-check', title:'Luôn có người duyệt', desc:'Nội dung quan trọng cần người phê duyệt trước khi ban hành.' },
+  { icon:'fa-clipboard-list', title:'Ghi nhật ký vết AI', desc:'Lưu lại việc đã dùng AI để truy vết khi cần.' },
+];
+const AI_CASES = [
+  { id:'summarize', icon:'fa-list-ul', title:'Tóm tắt báo cáo', hint:'Dán nội dung báo cáo để AI rút 3-5 ý chính.',
+    placeholder:'Ví dụ: Báo cáo kinh doanh tháng 11/2026, doanh thu đạt 2.4 tỷ đồng, tăng 12%...',
+    sample:'Báo cáo kinh doanh tháng 11/2026. Doanh thu đạt 2.4 tỷ đồng, tăng 12% so với tháng trước. Nhóm giảm đau chiếm 34% doanh thu. Tồn kho giảm 8%, còn 3 mặt hàng dưới mức tối thiểu. Đề xuất nhập thêm Vitamin C và Metformin.' },
+  { id:'email', icon:'fa-envelope', title:'Soạn email công việc', hint:'Nhập mục đích để AI soạn bản nháp email.',
+    placeholder:'Ví dụ: Thông báo lịch bảo trì hệ thống vào 22h thứ Bảy...',
+    sample:'Thông báo lịch bảo trì hệ thống máy chủ vào 22h thứ Bảy, yêu cầu mọi người lưu công việc trước 21h30.' },
+  { id:'classify', icon:'fa-tags', title:'Phân loại ticket', hint:'Nhập nội dung sự cố để AI gợi ý nhóm và mức ưu tiên.',
+    placeholder:'Ví dụ: Máy in tầng 2 kẹt giấy, không in được hóa đơn...',
+    sample:'Máy in tầng 2 kẹt giấy liên tục, không in được hóa đơn cho khách.' },
+  { id:'ocr', icon:'fa-file-invoice', title:'Trích xuất hóa đơn (OCR)', hint:'Mô phỏng nhập thông tin hóa đơn để AI trích xuất các trường.',
+    placeholder:'Ví dụ: Hóa đơn HD-2026-0118, Công ty Dược Mẫu, 12.500.000 đồng...',
+    sample:'Hóa đơn số HD-2026-0118 ngày 18/11/2026, nhà cung cấp Công ty Dược Mẫu, tổng tiền 12.500.000 đồng.' },
+];
+
+function renderAi() {
+  document.getElementById('aiRules').innerHTML = AI_RULES.map(r => `
+    <div class="bg-white rounded-xl shadow-sm border border-slate-100 p-4">
+      <span class="w-10 h-10 rounded-lg bg-gold-50 text-gold-600 flex items-center justify-center"><i class="fa-solid ${r.icon}"></i></span>
+      <div class="mt-3 font-semibold text-slate-800 text-sm">${r.title}</div>
+      <p class="mt-1 text-xs text-slate-500">${r.desc}</p>
+    </div>`).join('');
+
+  document.getElementById('aiCases').innerHTML = AI_CASES.map(c => `
+    <div class="bg-white rounded-xl shadow-sm border border-slate-100 p-5">
+      <div class="flex items-center gap-3">
+        <span class="w-10 h-10 rounded-lg bg-brand-50 text-brand-700 flex items-center justify-center"><i class="fa-solid ${c.icon}"></i></span>
+        <div><h3 class="font-semibold text-slate-800">${c.title}</h3><p class="text-xs text-slate-400">${c.hint}</p></div>
+      </div>
+      <textarea id="ai-in-${c.id}" rows="3" class="w-full mt-4 border border-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-500" placeholder="${c.placeholder}"></textarea>
+      <div class="mt-3 flex flex-wrap gap-2">
+        <button onclick="loadAiSample('${c.id}')" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-sm px-3 py-2 rounded-lg transition"><i class="fa-solid fa-file-import mr-1"></i>Dùng mẫu</button>
+        <button onclick="runAiCase('${c.id}')" class="bg-brand-700 hover:bg-brand-800 text-white font-semibold text-sm px-4 py-2 rounded-lg transition"><i class="fa-solid fa-wand-magic-sparkles mr-2"></i>Chạy AI</button>
+        <button onclick="approveAi('${c.id}')" class="bg-gold-500 hover:bg-gold-400 text-brand-900 font-semibold text-sm px-4 py-2 rounded-lg transition"><i class="fa-solid fa-user-check mr-2"></i>Người duyệt xác nhận</button>
+      </div>
+      <div id="ai-out-${c.id}" class="mt-4 hidden">
+        <div class="bg-slate-50 border border-slate-200 rounded-lg p-3 text-sm whitespace-pre-wrap" id="ai-result-${c.id}"></div>
+        <div class="mt-3 space-y-2">
+          <label class="flex items-center gap-2 text-sm"><input type="checkbox" class="ai-check accent-brand-700"> Kiểm tra tên riêng, ngày tháng chính xác</label>
+          <label class="flex items-center gap-2 text-sm"><input type="checkbox" class="ai-check accent-brand-700"> Đối chiếu số liệu với nguồn gốc</label>
+          <label class="flex items-center gap-2 text-sm"><input type="checkbox" class="ai-check accent-brand-700"> Kết quả đủ điều kiện sử dụng</label>
+        </div>
+        <div class="mt-3 flex items-center gap-3">
+          <span class="text-sm text-slate-500">Độ tin cậy:</span>
+          <div class="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden"><div id="ai-conf-${c.id}" class="h-full bg-gold-500" style="width:80%"></div></div>
+          <span id="ai-score-${c.id}" class="text-sm font-semibold text-slate-700">80%</span>
+        </div>
+        <div id="ai-approve-${c.id}" class="mt-3 text-sm font-medium text-emerald-600 hidden"><i class="fa-solid fa-circle-check mr-1"></i>Đã có người duyệt xác nhận.</div>
+      </div>
+    </div>`).join('');
+}
+
+function loadAiSample(id) {
+  const c = AI_CASES.find(x => x.id === id);
+  if (c) document.getElementById('ai-in-' + id).value = c.sample;
+}
+
+function runAiCase(id) {
+  const input = document.getElementById('ai-in-' + id).value.trim();
+  if (!input) { alert('Vui lòng nhập dữ liệu đầu vào.'); return; }
+  let result = '';
+  if (id === 'summarize') {
+    const sentences = input.replace(/([.!?])\s+/g, '$1\n').split('\n').filter(s => s.trim());
+    result = '• Tóm tắt:\n' + (sentences.slice(0,3).join(' ') || input) + '\n\n• Số liệu chính: (cần đối chiếu với bản gốc)\n• Việc cần làm tiếp: kiểm tra lại các con số trước khi gửi.';
+  } else if (id === 'email') {
+    result = 'Chủ đề: V/v ' + input.slice(0, 60) + '\n\nKính gửi [Tên người nhận],\n\n' + input + '.\n\nTrân trọng,\n[Người gửi]';
+  } else if (id === 'classify') {
+    const n = normalizeVi(input);
+    const grp = /(may in|printer|may tinh|laptop|man hinh)/.test(n) ? 'Phần cứng' : /(mat khau|dang nhap|tai khoan)/.test(n) ? 'Tài khoản' : /(wifi|mang|internet|vpn)/.test(n) ? 'Mạng' : 'Phần mềm';
+    const prio = /(khan|gap|khong lam viec|mat mang|khong in)/.test(n) ? 'Khẩn' : 'Trung bình';
+    result = 'Nhóm đề xuất: ' + grp + '\nMức ưu tiên: ' + prio + '\nGhi chú: nhân viên IT xác nhận lại trước khi áp dụng.';
+  } else if (id === 'ocr') {
+    result = 'Số hóa đơn: HD-2026-0118\nNgày: 18/11/2026\nNhà cung cấp: Công ty Dược Mẫu\nTổng tiền: 12.500.000 đ\n(Các trường độ tin cậy thấp cần kiểm tra thủ công)';
+  }
+  document.getElementById('ai-result-' + id).textContent = result;
+  document.getElementById('ai-out-' + id).classList.remove('hidden');
+}
+function approveAi(id) {
+  const out = document.getElementById('ai-out-' + id);
+  if (out.classList.contains('hidden')) { alert('Hãy chạy AI trước khi xác nhận.'); return; }
+  const checks = document.querySelectorAll('#ai-out-' + id + ' .ai-check');
+  const done = [...checks].filter(c => c.checked).length;
+  const score = Math.round((done / checks.length) * 100);
+  document.getElementById('ai-conf-' + id).style.width = score + '%';
+  document.getElementById('ai-score-' + id).textContent = score + '%';
+  document.getElementById('ai-approve-' + id).classList.remove('hidden');
+}
+
+/* ============================================================
+   MODULE 4 — HELPDESK
+   ============================================================ */
+const KB = [
+  { title:'Đăng nhập lần đầu & đổi mật khẩu', cat:'Tài khoản', steps:['Mở ứng dụng và nhập tài khoản được cấp','Bấm "Quên mật khẩu" để đặt mật khẩu mới','Đổi mật khẩu trong Tài khoản → Bảo mật'] },
+  { title:'Kết nối máy in', cat:'Phần cứng', steps:['Cắm nguồn và dây kết nối máy in','Cài driver từ trang nhà sản xuất','Chọn máy in mặc định trong Cài đặt'] },
+  { title:'Xử lý máy tính chạy chậm', cat:'Phần mềm', steps:['Khởi động lại máy','Đóng bớt tab trình duyệt','Kiểm tra ổ đĩa còn trống trên 15%'] },
+  { title:'Tạo phiếu đề xuất đầu tiên', cat:'Quy trình', steps:['Vào Module Workflow','Chọn loại quy trình','Điền thông tin và gửi duyệt'] },
+  { title:'Kết nối VPN làm việc từ xa', cat:'Mạng', steps:['Cài ứng dụng VPN theo hướng dẫn','Đăng nhập với tài khoản công ty','Dùng xác thực hai lớp'] },
+];
+const ASSETS = [
+  { id:'IT-101', name:'Laptop Dell Latitude', user:'Nguyễn Văn A', dept:'Kế toán', status:'Đang dùng' },
+  { id:'IT-102', name:'Máy in HP LaserJet', user:'Phòng Hành chính', dept:'Hành chính', status:'Đang dùng' },
+  { id:'IT-103', name:'Laptop ThinkPad', user:'Trần Thị B', dept:'Kinh doanh', status:'Bảo hành' },
+  { id:'IT-104', name:'Màn hình Samsung 24"', user:'Lê Văn C', dept:'Kho', status:'Đang dùng' },
+];
+const DEPT_INCIDENTS = [ { d:'Kinh doanh', v:14 }, { d:'Kho', v:9 }, { d:'Kế toán', v:6 }, { d:'Hành chính', v:4 }, { d:'Khác', v:3 } ];
+
+let tickets = loadLS('pharma_tickets', [
+  { id:'IT-2026', type:'Máy in', prio:'Cao', desc:'Máy in tầng 2 kẹt giấy liên tục.', status:'Đang xử lý' },
+  { id:'IT-2025', type:'Wifi / Mạng', prio:'Khẩn', desc:'Toàn bộ phòng kinh doanh mất mạng.', status:'Đang xử lý' },
+  { id:'IT-2024', type:'Quên mật khẩu', prio:'Trung bình', desc:'Không đăng nhập được email công việc.', status:'Đã giải quyết' },
+]);
+
+function submitTicket() {
+  const type = document.getElementById('ticketType').value;
+  const prio = document.getElementById('ticketPriority').value;
+  const desc = document.getElementById('ticketDesc').value.trim();
+  if (!desc) { alert('Vui lòng nhập mô tả sự cố.'); return; }
+  tickets.unshift({ id:'IT-' + String(Date.now()).slice(-4), type, prio, desc, status:'Mới' });
+  saveLS('pharma_tickets', tickets);
+  document.getElementById('ticketDesc').value = '';
+  renderTickets();
+}
+function renderTickets() {
+  const prioColor = { 'Khẩn':'bg-red-100 text-red-700', 'Cao':'bg-orange-100 text-orange-700', 'Trung bình':'bg-amber-100 text-amber-700', 'Thấp':'bg-slate-100 text-slate-600' };
+  const stColor = { 'Mới':'bg-blue-100 text-blue-700', 'Đang xử lý':'bg-amber-100 text-amber-700', 'Đã giải quyết':'bg-emerald-100 text-emerald-700' };
+  document.getElementById('ticketList').innerHTML = tickets.map(t => `
+    <div class="border border-slate-100 rounded-lg p-4 flex flex-wrap items-center justify-between gap-3">
+      <div>
+        <div class="flex items-center gap-2"><span class="font-semibold text-slate-800">${t.id}</span><span class="text-xs px-2 py-0.5 rounded-full ${prioColor[t.prio]}">${t.prio}</span><span class="text-xs px-2 py-0.5 rounded-full ${stColor[t.status]}">${t.status}</span></div>
+        <div class="text-sm text-slate-600 mt-1">${esc(t.desc)}</div>
+        <div class="text-xs text-slate-400 mt-1"><i class="fa-solid fa-tag mr-1"></i>${t.type}</div>
+      </div>
+      ${t.status !== 'Đã giải quyết' ? `<button onclick="resolveTicket('${t.id}')" class="text-sm text-emerald-600 hover:text-emerald-800 font-semibold"><i class="fa-solid fa-check mr-1"></i>Đánh dấu đã xử lý</button>` : ''}
+    </div>`).join('');
+}
+function resolveTicket(id) { const t = tickets.find(x => x.id === id); if (t) { t.status = 'Đã giải quyết'; saveLS('pharma_tickets', tickets); renderTickets(); } }
+
+function renderKB() {
+  const q = normalizeVi(document.getElementById('kbSearch').value);
+  const list = KB.filter(a => !q || normalizeVi(a.title + ' ' + a.cat).includes(q));
+  document.getElementById('kbList').innerHTML = list.length ? list.map(a => `
+    <details class="border border-slate-100 rounded-lg p-3">
+      <summary class="cursor-pointer font-medium text-slate-700 text-sm"><span class="text-xs text-brand-700 bg-brand-50 px-2 py-0.5 rounded-full mr-2">${a.cat}</span>${a.title}</summary>
+      <ol class="mt-2 ml-5 list-decimal text-sm text-slate-500 space-y-1">${a.steps.map(s => `<li>${s}</li>`).join('')}</ol>
+    </details>`).join('') : '<p class="text-sm text-slate-400">Không tìm thấy bài hướng dẫn.</p>';
+}
+function renderAssets() {
+  document.getElementById('assetTable').innerHTML = `
+    <thead><tr class="bg-brand-50 text-brand-800 text-left"><th class="px-3 py-2">Mã</th><th class="px-3 py-2">Thiết bị</th><th class="px-3 py-2">Người dùng</th><th class="px-3 py-2">Phòng ban</th><th class="px-3 py-2">Trạng thái</th></tr></thead>
+    <tbody>${ASSETS.map(a => `<tr class="border-t border-slate-100"><td class="px-3 py-2 font-medium">${a.id}</td><td class="px-3 py-2">${a.name}</td><td class="px-3 py-2">${a.user}</td><td class="px-3 py-2">${a.dept}</td><td class="px-3 py-2"><span class="text-xs px-2 py-0.5 rounded-full ${a.status==='Đang dùng'?'bg-emerald-100 text-emerald-700':'bg-amber-100 text-amber-700'}">${a.status}</span></td></tr>`).join('')}</tbody>`;
+}
+let deptChart = null;
+function initDeptChart() {
+  if (typeof Chart === 'undefined') return;
+  if (deptChart) deptChart.destroy();
+  deptChart = new Chart(document.getElementById('chartDept'), { type:'bar', data:{ labels:DEPT_INCIDENTS.map(x=>x.d), datasets:[{ label:'Sự cố', data:DEPT_INCIDENTS.map(x=>x.v), backgroundColor:'#800020', borderRadius:4 }] }, options:{ plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true}} } });
+}
+
+/* ============================================================
+   CHATBOT — keyword matching on 100 intents
+   ============================================================ */
+function toggleChat() { document.getElementById('chatPanel').classList.toggle('hidden'); if (!document.getElementById('chatPanel').classList.contains('hidden')) initChat(); }
+
+function initChat() {
+  if (document.getElementById('chatMessages').dataset.ready) return;
+  document.getElementById('chatMessages').dataset.ready = '1';
+  addMsg('bot', 'Xin chào! Mình là trợ lý ảo của hệ thống demo. Bạn có thể hỏi về quy trình duyệt, dữ liệu Excel, tồn kho, báo cáo, AI hoặc hỗ trợ IT.');
+  renderSuggestions();
+}
+
+function renderSuggestions() {
+  const qs = (window.PHARMA_INTENTS && window.PHARMA_INTENTS.suggested_questions) || [];
+  document.getElementById('chatSuggestions').innerHTML = qs.map(q => `<button onclick="askChat('${esc(q)}')" class="chip text-[11px] bg-brand-50 text-brand-700 hover:bg-brand-700 hover:text-white px-2.5 py-1 rounded-full transition">${esc(q)}</button>`).join('');
+}
+
+function addMsg(who, text) {
+  const el = document.createElement('div');
+  el.className = 'max-w-[85%] ' + (who === 'user' ? 'ml-auto msg-user' : 'msg-bot') + ' rounded-xl px-3 py-2 text-sm';
+  el.textContent = text;
+  document.getElementById('chatMessages').appendChild(el);
+  document.getElementById('chatMessages').scrollTop = document.getElementById('chatMessages').scrollHeight;
+}
+
+function matchIntent(q) {
+  const intents = (window.PHARMA_INTENTS && window.PHARMA_INTENTS.intents) || [];
+  const nq = normalizeVi(q);
+  let best = null, bestScore = 0, bestKwLen = 0;
+  for (const it of intents) {
+    let score = 0, maxLen = 0;
+    for (const k of (it.keywords || [])) {
+      const nk = normalizeVi(k);
+      if (nk && nq.includes(nk)) { score++; if (nk.length > maxLen) maxLen = nk.length; }
+    }
+    if (score > bestScore || (score === bestScore && score > 0 && maxLen > bestKwLen)) { best = it; bestScore = score; bestKwLen = maxLen; }
+  }
+  return bestScore > 0 ? best : null;
+}
+
+function askChat(q) {
+  document.getElementById('chatInput').value = q;
+  sendChat();
+}
+function sendChat() {
+  const input = document.getElementById('chatInput');
+  const q = input.value.trim();
+  if (!q) return;
+  addMsg('user', q);
+  input.value = '';
+  const hit = matchIntent(q);
+  if (hit) addMsg('bot', hit.answer);
+  else {
+    const fb = (window.PHARMA_INTENTS && window.PHARMA_INTENTS.fallback) || ['Mình chưa hiểu câu hỏi này. Bạn thử hỏi về quy trình, dữ liệu, tồn kho, báo cáo, AI hoặc hỗ trợ IT nhé.'];
+    addMsg('bot', fb[Math.floor(Math.random() * fb.length)]);
+  }
+}
+
+/* ============================================================
+   INIT
+   ============================================================ */
+buildNav();
+renderJd();
+renderWfProcessSelect();
+renderKanban();
+renderAi();
+renderKB();
+renderAssets();
+renderTickets();
+renderLog();
+</script>
+
+<script>
+/* ============================================================
+   FULL-STACK layer: auth + API (hoạt động khi chạy qua backend)
+   ============================================================ */
+const API_BASE = '/api/v1';
+const AUTH = { token: localStorage.getItem('pharma_token') || null, user: null, apiMode: false };
+let wfTemplates = [];
+
+async function apiFetch(method, path, body, isForm) {
+  const opts = { method, headers: {} };
+  if (AUTH.token) opts.headers['Authorization'] = 'Bearer ' + AUTH.token;
+  if (body != null && !isForm) { opts.headers['Content-Type'] = 'application/json'; opts.body = JSON.stringify(body); }
+  else if (body != null && isForm) { opts.body = body; }
+  const r = await fetch(API_BASE + path, opts);
+  if (r.status === 401) { doLogout(); throw new Error('Phiên đăng nhập hết hạn'); }
+  if (!r.ok) { let msg = 'Lỗi ' + r.status; try { msg = (await r.json()).detail || msg; } catch(e){} throw new Error(msg); }
+  const ct = r.headers.get('content-type') || '';
+  return ct.includes('json') ? r.json() : r;
+}
+
+function showLogin() { document.getElementById('loginOverlay').classList.remove('hidden'); }
+function hideLogin() { document.getElementById('loginOverlay').classList.add('hidden'); }
+
+async function doLogin() {
+  const u = document.getElementById('loginUser').value.trim();
+  const p = document.getElementById('loginPass').value;
+  const err = document.getElementById('loginError');
+  err.classList.add('hidden');
+  try {
+    const data = await apiFetch('POST', '/auth/login', { username: u, password: p });
+    AUTH.token = data.access_token;
+    localStorage.setItem('pharma_token', AUTH.token);
+    await loadMe();
+    hideLogin();
+    await refreshAll();
+  } catch (e) {
+    err.textContent = 'Đăng nhập thất bại: ' + e.message;
+    err.classList.remove('hidden');
+  }
+}
+
+async function loadMe() {
+  try { AUTH.user = await apiFetch('GET', '/auth/me'); } catch (e) { AUTH.user = null; }
+  renderAuthUI();
+}
+
+function doLogout() {
+  AUTH.token = null; AUTH.user = null; localStorage.removeItem('pharma_token');
+  location.reload();
+}
+
+function renderAuthUI() {
+  const html = AUTH.user
+    ? '<i class="fa-solid fa-user mr-1 text-brand-700"></i>' + esc(AUTH.user.full_name) + ' <span class="text-slate-400">(' + esc(AUTH.user.role_name || '') + ')</span> <button onclick="doLogout()" class="ml-1 text-brand-700 hover:underline">Đăng xuất</button>'
+    : '<button onclick="showLogin()" class="text-brand-700 hover:underline"><i class="fa-solid fa-right-to-bracket mr-1"></i>Đăng nhập</button>';
+  document.getElementById('authUser').innerHTML = html;
+  document.getElementById('authUserMobile').innerHTML = html;
+}
+
+async function refreshAll() {
+  if (!AUTH.apiMode) return;
+  await loadWfTemplates();
+  await renderKanbanApi();
+  await renderTicketsApi();
+  await renderAssetsApi();
+}
+
+/* capture các hàm mock gốc để fallback khi chạy demo (file://) */
+const _orig = {
+  renderWfProcessSelect: renderWfProcessSelect,
+  submitWf: submitWf, renderKanban: renderKanban, moveWf: moveWf,
+  submitTicket: submitTicket, renderTickets: renderTickets, renderAssets: renderAssets,
+  runAiCase: runAiCase, approveAi: approveAi, sendChat: sendChat,
+};
+
+/* ---------- Workflow qua API ---------- */
+async function loadWfTemplates() {
+  const list = await apiFetch('GET', '/workflows/templates');
+  wfTemplates = list.map(t => ({ id: t.id, key: (t.steps_config_json || {}).key || '', title: t.title }));
+  const sel = document.getElementById('wfProcess');
+  sel.innerHTML = wfTemplates.map(t => '<option value="' + esc(t.key) + '">' + esc(t.title) + '</option>').join('');
+  renderWfForm();
+}
+async function submitWfApi() {
+  const key = document.getElementById('wfProcess').value;
+  const t = wfTemplates.find(x => x.key === key);
+  if (!t) return;
+  const vals = {};
+  document.querySelectorAll('.wf-field').forEach(el => vals[el.dataset.k] = el.value);
+  await apiFetch('POST', '/workflows/tickets', { template_id: t.id, data_json: vals });
+  document.querySelectorAll('.wf-field').forEach(el => el.value = '');
+  await renderKanbanApi();
+}
+function wfTitle(t) {
+  const d = t.data_json || {};
+  for (const k of Object.keys(d)) { if (k[0] !== '_' && d[k] !== '' && d[k] != null) return String(d[k]); }
+  return t.template_title || '';
+}
+async function renderKanbanApi() {
+  const list = await apiFetch('GET', '/workflows/tickets/kanban');
+  const card = t => `<div class="bg-white rounded-lg border border-slate-200 p-3 shadow-sm">
+    <div class="text-xs text-slate-400 font-medium">#${t.id} · ${esc(t.template_title)}</div>
+    <div class="mt-1 text-sm font-semibold text-slate-800">${esc(wfTitle(t))}</div>
+    <div class="mt-2 flex items-center justify-between">
+      <span class="text-[11px] text-slate-400">${esc(t.requester_name)}</span>
+      ${t.status === 'pending' ? `<div class="flex gap-1"><button onclick="moveWf(${t.id},'approve')" class="w-7 h-7 rounded-md bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white"><i class="fa-solid fa-check text-xs"></i></button><button onclick="moveWf(${t.id},'reject')" class="w-7 h-7 rounded-md bg-red-50 text-red-500 hover:bg-red-500 hover:text-white"><i class="fa-solid fa-xmark text-xs"></i></button></div>` : ''}
+    </div>
+  </div>`;
+  const by = s => list.filter(t => t.status === s).map(card).join('') || '<p class="text-xs text-slate-400">Không có phiếu.</p>';
+  document.getElementById('kanban-pending').innerHTML = by('pending');
+  document.getElementById('kanban-approved').innerHTML = by('approved');
+  document.getElementById('kanban-rejected').innerHTML = by('rejected');
+}
+async function moveWfApi(id, action) {
+  await apiFetch('POST', '/workflows/tickets/' + id + '/approve', { action });
+  await renderKanbanApi();
+}
+
+/* ---------- Helpdesk qua API ---------- */
+async function submitTicketApi() {
+  const category = document.getElementById('ticketType').value;
+  const priority = document.getElementById('ticketPriority').value;
+  const description = document.getElementById('ticketDesc').value.trim();
+  if (!description) { alert('Vui lòng nhập mô tả sự cố.'); return; }
+  await apiFetch('POST', '/helpdesk/tickets', { category, priority, subject: description.slice(0, 80), description });
+  document.getElementById('ticketDesc').value = '';
+  await renderTicketsApi();
+}
+function slaText(due) {
+  if (!due) return '—';
+  const ms = new Date(due).getTime() - Date.now();
+  if (ms < 0) return '<span class="text-red-600 font-semibold">quá hạn</span>';
+  const h = Math.round(ms / 3600000);
+  return 'còn ' + (h >= 24 ? Math.round(h / 24) + ' ngày' : h + ' giờ');
+}
+async function renderTicketsApi() {
+  const list = await apiFetch('GET', '/helpdesk/tickets');
+  const prioColor = { 'Khẩn':'bg-red-100 text-red-700', 'Cao':'bg-orange-100 text-orange-700', 'Trung bình':'bg-amber-100 text-amber-700', 'Thấp':'bg-slate-100 text-slate-600' };
+  const stColor = { 'Mới':'bg-blue-100 text-blue-700', 'Đang xử lý':'bg-amber-100 text-amber-700', 'Đã giải quyết':'bg-emerald-100 text-emerald-700' };
+  document.getElementById('ticketList').innerHTML = list.map(t => `
+    <div class="border border-slate-100 rounded-lg p-4 flex flex-wrap items-center justify-between gap-3">
+      <div>
+        <div class="flex items-center gap-2"><span class="font-semibold text-slate-800">#${t.id}</span><span class="text-xs px-2 py-0.5 rounded-full ${prioColor[t.priority] || ''}">${esc(t.priority)}</span><span class="text-xs px-2 py-0.5 rounded-full ${stColor[t.status] || ''}">${esc(t.status)}</span></div>
+        <div class="text-sm text-slate-600 mt-1">${esc(t.subject)}</div>
+        <div class="text-xs text-slate-400 mt-1"><i class="fa-solid fa-tag mr-1"></i>${esc(t.category)} · SLA ${slaText(t.sla_due_date)}</div>
+      </div>
+    </div>`).join('') || '<p class="text-sm text-slate-400">Chưa có ticket.</p>';
+}
+async function renderAssetsApi() {
+  const list = await apiFetch('GET', '/assets');
+  document.getElementById('assetTable').innerHTML = `
+    <thead><tr class="bg-brand-50 text-brand-800 text-left"><th class="px-3 py-2">Mã</th><th class="px-3 py-2">Thiết bị</th><th class="px-3 py-2">Serial</th><th class="px-3 py-2">Hạn bảo hành</th><th class="px-3 py-2">Trạng thái</th></tr></thead>
+    <tbody>${list.map(a => `<tr class="border-t border-slate-100"><td class="px-3 py-2 font-medium">${esc(a.asset_code)}</td><td class="px-3 py-2">${esc(a.asset_name)}</td><td class="px-3 py-2">${esc(a.serial_number)}</td><td class="px-3 py-2">${esc(a.warranty_expiry)}</td><td class="px-3 py-2"><span class="text-xs px-2 py-0.5 rounded-full ${a.status === 'Đang dùng' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}">${esc(a.status)}</span></td></tr>`).join('')}</tbody>`;
+}
+
+/* ---------- AI qua API ---------- */
+async function runAiCaseApi(id) {
+  const input = document.getElementById('ai-in-' + id).value.trim();
+  if (!input) { alert('Vui lòng nhập dữ liệu đầu vào.'); return; }
+  const r = await apiFetch('POST', '/ai/process-task', { task_type: id, input_text: input });
+  document.getElementById('ai-result-' + id).textContent = r.output;
+  document.getElementById('ai-out-' + id).classList.remove('hidden');
+}
+async function approveAiApi(id) {
+  const out = document.getElementById('ai-out-' + id);
+  if (out.classList.contains('hidden')) { alert('Hãy chạy AI trước khi xác nhận.'); return; }
+  const checks = document.querySelectorAll('#ai-out-' + id + ' .ai-check');
+  const done = [...checks].filter(c => c.checked).length;
+  const score = Math.round((done / checks.length) * 100);
+  document.getElementById('ai-conf-' + id).style.width = score + '%';
+  document.getElementById('ai-score-' + id).textContent = score + '%';
+  document.getElementById('ai-approve-' + id).classList.remove('hidden');
+  try {
+    await apiFetch('POST', '/ai/review-submit', { task_type: id, input_text: document.getElementById('ai-in-' + id).value, ai_output: document.getElementById('ai-result-' + id).textContent, confidence_score: score, checklist_json: { checked: done, total: checks.length } });
+  } catch (e) {}
+}
+async function sendChatApi() {
+  const input = document.getElementById('chatInput');
+  const q = input.value.trim();
+  if (!q) return;
+  addMsg('user', q);
+  input.value = '';
+  try { const r = await apiFetch('POST', '/ai/chatbot', { message: q }); addMsg('bot', r.answer); }
+  catch (e) { addMsg('bot', 'Lỗi: ' + e.message); }
+}
+
+/* ---------- override theo mode ---------- */
+renderWfProcessSelect = function() { return AUTH.apiMode ? loadWfTemplates() : _orig.renderWfProcessSelect(); };
+submitWf = function() { return AUTH.apiMode ? submitWfApi() : _orig.submitWf(); };
+renderKanban = function() { return AUTH.apiMode ? renderKanbanApi() : _orig.renderKanban(); };
+moveWf = function(id, action) { return AUTH.apiMode ? moveWfApi(id, action) : _orig.moveWf(id, action); };
+submitTicket = function() { return AUTH.apiMode ? submitTicketApi() : _orig.submitTicket(); };
+renderTickets = function() { return AUTH.apiMode ? renderTicketsApi() : _orig.renderTickets(); };
+renderAssets = function() { return AUTH.apiMode ? renderAssetsApi() : _orig.renderAssets(); };
+runAiCase = function(id) { return AUTH.apiMode ? runAiCaseApi(id) : _orig.runAiCase(id); };
+approveAi = function(id) { return AUTH.apiMode ? approveAiApi(id) : _orig.approveAi(id); };
+sendChat = function() { return AUTH.apiMode ? sendChatApi() : _orig.sendChat(); };
+
+/* ---------- boot: phát hiện backend ---------- */
+async function boot() {
+  try {
+    const r = await fetch('/api/v1/health');
+    if (r.ok) {
+      AUTH.apiMode = true;
+      if (AUTH.token) { await loadMe(); hideLogin(); await refreshAll(); }
+      else { renderAuthUI(); showLogin(); }
+      return;
+    }
+  } catch (e) {}
+  AUTH.apiMode = false;
+  renderAuthUI();
+  hideLogin();
+}
+boot();
+</script>
+
+<script>
+/* Data module — qua API khi chạy backend */
+let lastDiscrepancy = [];
+
+const _origData = {
+  handleDataFile: handleDataFile, cleanData: cleanData, reconcile: reconcile, exportXlsx: exportXlsx,
+};
+
+async function handleDataFileApi(ev) {
+  const file = ev.target.files[0];
+  if (!file) return;
+  const form = new FormData();
+  form.append('file', file);
+  const data = await apiFetch('POST', '/data/upload-clean', form, true);
+  currentData = data.rows;
+  dataLog = data.log;
+  renderLog();
+  renderDataTable(currentData);
+  initCharts();
+  ev.target.value = '';
+}
+
+async function cleanDataApi() {
+  if (!currentData.length) { alert('Chưa có dữ liệu. Hãy nạp dữ liệu mẫu hoặc tải file trước.'); return; }
+  const data = await apiFetch('POST', '/data/clean', { rows: currentData });
+  currentData = data.rows;
+  dataLog = data.log;
+  renderLog();
+  renderDataTable(currentData);
+}
+
+async function reconcileApi() {
+  const data = await apiFetch('POST', '/data/reconcile-json', { warehouse: KHO_DATA, accounting: KT_DATA });
+  lastDiscrepancy = data.rows;
+  const diffRows = new Set(); const onlyRows = new Set();
+  data.rows.forEach((r, i) => {
+    if (r.status === 'Lệch số lượng') diffRows.add(i);
+    else if (r.status === 'Chỉ có ở Kho' || r.status === 'Chỉ có ở Kế toán') onlyRows.add(i);
+  });
+  const display = data.rows.map(r => ({ code: r.item_code, lot: r.batch_number, kho: r.qty_warehouse, ketoan: r.qty_accounting, diff: r.difference, status: r.status }));
+  renderDataTable(display, { diffRows, onlyRows });
+  addLog('Đối chiếu qua backend: ' + diffRows.size + ' lệch, ' + onlyRows.size + ' chỉ có 1 nguồn.');
+}
+
+async function exportXlsxApi() {
+  if (!currentData.length) { alert('Chưa có dữ liệu để xuất.'); return; }
+  const resp = await fetch(API_BASE + '/data/export-report', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + AUTH.token },
+    body: JSON.stringify({ clean: currentData, discrepancy: lastDiscrepancy, audit_log: dataLog }),
+  });
+  if (!resp.ok) { alert('Xuất báo cáo thất bại.'); return; }
+  const blob = await resp.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'bao-cao-pharma-hub.xlsx'; a.click();
+  URL.revokeObjectURL(url);
+}
+
+handleDataFile = function(ev) { return AUTH.apiMode ? handleDataFileApi(ev) : _origData.handleDataFile(ev); };
+cleanData = function() { return AUTH.apiMode ? cleanDataApi() : _origData.cleanData(); };
+reconcile = function() { return AUTH.apiMode ? reconcileApi() : _origData.reconcile(); };
+exportXlsx = function() { return AUTH.apiMode ? exportXlsxApi() : _origData.exportXlsx(); };
+</script>
+</body>
+</html>
